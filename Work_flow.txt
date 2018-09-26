@@ -1,0 +1,128 @@
+This document will introduce the work flow of reconstructing ancestral genome from pairwise syntenic blocks using MLGO. It contains step-by-step instruction and file format description. This document will also points to the example files which could be useful in preparing input data and checking your output data.
+
+
+
+
+****Stage 1: Prepare synteny files for all species included in the study.
+
+## The first step is calculating pairwise synteny between the selected reference genome and each of the remaining genomes. To select reference genome, genomes experienced more dramatic changes (gene loss, rearrangements, and any other kinds of changes) compared to other genomes should be avoided.
+
+## In order to reconstruct the ancestral genome of a set of species, at least one outgroup species needs to be included.
+
+## Pairwise synteny can be calculated with various type of softwares, for example DAGchainer. No matter which software is used, the calculated synteny files should be formatted into the same format as the example file (synteny_phavu_vs_aradu_example.txt) in the example/ directory. The format is also described below in details.
+
+The calculated synteny file contains syntenic blocks for all chromosomes in the selected reference genome, which means the file is not separated by chromosome. Each syntenic block in the file contains multiple lines with two types of information. First, the summary information of the syntenic block should be included as the first line for this syntenic block. The name of each column in the summary information line (the first line) is noted below:
+
+Chromosome_ID	Software_name	Start_position	End_position	Number_of_gene_pairs	Orientation	Match_info_in_query
+
+	Chromosome_ID: The unique name of chromosomes in the reference genome.
+
+	Software_name: Name of the software used for calculating pairwise synteny.
+
+	Start_position: The start position of the syntenic block in the reference genome.
+
+	End_position: The end position of the syntenic block in the reference genome.
+
+	Number_of_gene_pairs: Number of gene pairs in the syntenic blocks.
+
+	Orientation: The orientation (+/-) of the syntenic block.
+
+	Match_info_in_query: This contains all the syntenic block information in query genome. It is in the format described below. The parentheses are not included in the real file, it is just used to specify the content needs to be replaced with real information.
+			marches=(chromosome ID):(start position)..(end position);median_Ks=(the median Ks value)
+
+Second, the gene pair information of the syntenic block should be included as the following lines, and the number of lines equals to the number of gene pairs in the summary information line. The name of each column in the gene pair line (the first line) is noted below:
+
+	Chromosome_ID_ref	Gene_ID_ref	Start_pos_ref	End_pos_ref	Chromosome_ID_query	Gene_ID_query	Start_pos_query	End_pos_query
+
+	Chromosome_ID_ref: The unique name of chromosomes in the reference genome.
+
+	Gene_ID_ref: The gene ID in the reference genome.
+
+	Start_pos_ref: The start position of the gene in the reference genome.
+
+	End_pos_ref: The end position of the gene in the reference genome.
+
+	Chromosome_ID_query: The unique name of chromosomes in the query genome.
+
+	Gene_ID_query: The gene ID in the query genome.
+
+	Start_pos_query: The start position of the gene in the query genome.
+
+	End_pos_query: The end position of the gene in the query genome.
+
+## Before combining pairwise syntenic blocks, they need to be manually inspect to remove overlapped blocks. The removing of overlapped blocks follows these rules:
+
+	(1) remove the one with larger median Ks value;
+	(2) remove the one with smaller size if they have similar median Ks values;
+	(3) remove the one matched to far away location (especially other chromosome) compared with nearby blocks.
+
+In genomes involving whole genome duplication, it is expected to have overlapped blocks. However, the overlap level could not exceed 2. The third overlapped block needs to be removed following the same rules described above.
+
+## The synteny file of genome involving whole genome duplication needs to be separated into two, pretending there are two separate genomes. Such as Glycine max, I have two synteny files for it: "synteny_phavu_vs_glyma_1.txt" and "synteny_phavu_vs_glyma_2.txt".
+
+## Some synteny calculating softwares allow rearrangements within a syntenic blocks. This means if you sort all gene pairs within a syntenic block based on their genomic positions in the reference genome, they could be not in a pure ascending/descending order in the query genome. This kind of disrupting genes would cause some problem in the following steps. Fortunately, this kind of disrupting genes only occupies a very small portion, and can be removed in the syntenic blocks. You can find a script (check_gene_pair_order.pl) in the scripts/ directory. That script can identify and mark the disrupting genes, then you can remove them. Remember to redefine the syntenic blocks after removing disrupting genes, since this may change the start and end position and number of gene pairs of a syntenic block. This can be done using the script (redefine_block_details.pl) in the scripts/ directory. Re-check for disrupting genes and remove them if there is still any. Keep doing this till there is no more disrupting genes.
+
+## Now, the synteny files are ready to be combined.
+
+
+
+
+****Stage 2: Combine pairwise syntenic blocks into syntenic-block markers across all species included.
+
+## With all the ready-to-combine synteny files, they can be combined into syntenic-block markers across all species included through a series of scripts. These scripts are located in the scripts/ directory with prefix from "01" to "07". The entire combining process is describe step-by-step below with example command lines.
+
+Step 1: Get the first synteny file ready for adding other synteny files. Add a first column to record the start and end information of syntenic blocks. It doesn't matter which one is selected as the first synteny file.
+	Example command line:	perl 01_get_first_synteny_ready.pl synteny_phavu_vs_aradu.txt > first_synteny_Pv_Ad.txt
+
+Step 2: Add other synteny files one by one, and update the information in the first column. It doesn't matter which one is added first. However, the outgroup species has to be the last. When you have genome involving whole genome duplication, you need to add the two pretending genomes separately.
+	Example command line:	perl 02_put_synteny_files_together.pl first_synteny_Pv_Ad.txt synteny_phavu_vs_araip.txt 3 combined_synteny_Pv_Ad_Ai.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai.txt synteny_phavu_vs_cajca.txt 3 combined_synteny_Pv_Ad_Ai_Cc.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc.txt synteny_phavu_vs_cicar.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca.txt synteny_phavu_vs_lotja.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj.txt synteny_phavu_vs_medtr.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt.txt synteny_phavu_vs_vigra.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr.txt synteny_phavu_vs_glyma_1.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1.txt synteny_phavu_vs_glyma_2.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2.txt
+				perl 02_put_synteny_files_together.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2.txt synteny_phavu_vs_prupe.txt 3 combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp.txt
+
+Step 3: Transform the first column into line dividers "##########".
+	Example command line:	perl 03_transform_to_divider.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp.txt > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider.txt
+
+Step 4: Remove lines with missing data in more than 2 copies of the syntenic block, which means more than 10 NAs in one row in the file. This criterion can be changed by modifying the script. Outgroup species is not considered when counting missing data.
+	Example command line:	perl 04_remove_missing_data.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider.txt > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing.txt
+
+Step 5: Remove extra divider lines. Removing missing data may eliminate all gene pairs in one syntenic block which results in an empty block and an extra divider line. We might also add extra divider lines in step 3.
+	Example command line:	perl 05_remove_extra_divider.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing.txt > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra.txt
+
+Step 6: Redefine the syntenic blocks.
+	Example command line:	perl 06_redefine_blocks.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra.txt > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined.txt
+
+Step 7: Discard syntenic blocks with less than certain number of gene pairs.
+	Example command line:	perl 07_filter_gene_pair_num.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined.txt 4 > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined_filtered4.txt
+
+## In some of these scripts, software name "DAGchainer" is used as anchor to locate the summary information line. If you are using other softwares, you can either modify the script to use the software name you are using, or just use "DAGchainer" as the software name in your synteny files.
+
+## Now, all synteny files are combined together into syntenic-block markers.
+
+There is an example file (combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_example.txt) in the examples/ directory showing the combined syntenic-block markers, and this file is part of the final combined file above "combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined_filtered4.txt".
+
+
+
+
+****Stage 3: Index syntenic-block markers and generate MLGO input file.
+
+## Index each syntenic-block marker using unique number. Sort the syntenic-block markers based on their genomic position in the reference genome, and index them with ascending numbers.
+	Example command line:	perl -ne 'if($_=~/DAGchainer/){$index=$index+1;print "$index\t$_"}else{print "$_"}' combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined_filtered4.txt > indexed_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp.txt
+
+## Generate MLGO input file based on indexed syntenic-block markers, and discard blocks with gene missing rate greater than 50% for each species. There is an example script to complete this task (generate_input_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm_Pp.sh), which is located in the scripts/ directory. You need to modify the script before using it in your own study.
+
+## Create a tree file in Newick format based on the phylogeny of all species included.
+
+
+
+
+****Stage 4: Reconstruct ancestral genome using MLGO.
+
+## Upload the input file and the tree file to MLGO web server (http://geneorder.org/). Specify "Ancestral Genomic Reconstruction (SPP)" as the inference target. Provide your email and run the analysis.
+
+## The reconstruction result will be sent to the email address you provided.
