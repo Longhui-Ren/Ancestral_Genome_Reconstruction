@@ -60,7 +60,7 @@ In genomes involving whole genome duplication, it is expected to have overlapped
 
 ## The synteny file of genome involving whole genome duplication needs to be separated into two, pretending there are two separate genomes. Such as Glycine max, I have two synteny files for it: "synteny_phavu_vs_glyma_1.txt" and "synteny_phavu_vs_glyma_2.txt".
 
-## Some synteny calculating softwares allow rearrangements within a syntenic blocks. This means if you sort all gene pairs within a syntenic block based on their genomic positions in the reference genome, they could be not in a pure ascending/descending order in the query genome. This kind of disrupting genes would cause some problem in the following steps. Fortunately, this kind of disrupting genes only occupies a very small portion, and can be removed in the syntenic blocks. You can find a script (check_gene_pair_order.pl) in the scripts/ directory. That script can identify and mark the disrupting genes, then you can remove them. Remember to redefine the syntenic blocks after removing disrupting genes, since this may change the start and end position and number of gene pairs of a syntenic block. This can be done using the script (redefine_block_details.pl) in the scripts/ directory. Re-check for disrupting genes and remove them if there is still any. Keep doing this till there is no more disrupting genes.
+## Some synteny calculating softwares allow rearrangements within a syntenic blocks. This means if you sort all gene pairs within a syntenic block based on their genomic positions in the reference genome, they could be not in a pure ascending/descending order in the query genome. This kind of disrupting genes would cause some problems in the following steps. Fortunately, this kind of disrupting genes only occupies a very small portion, and can be removed in the syntenic blocks. You can find a script (check_gene_pair_order.pl) in the scripts/ directory. That script can identify and mark the disrupting genes, then you can remove them. Remember to redefine the syntenic blocks after removing disrupting genes, since this may change the start and end position and number of gene pairs of a syntenic block. This can be done using the script (redefine_block_details.pl) in the scripts/ directory. Re-check for disrupting genes and remove them if there is still any. Keep doing this till there is no more disrupting genes.
 
 ## Now, the synteny files are ready to be combined.
 
@@ -100,7 +100,9 @@ Step 6: Redefine the syntenic blocks.
 Step 7: Discard syntenic blocks with less than certain number of gene pairs.
 	Example command line:	perl 07_filter_gene_pair_num.pl combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined.txt 4 > combined_synteny_Pv_Ad_Ai_Cc_Ca_Lj_Mt_Vr_Gm1_Gm2_Pp_divider_no_missing_no_extra_redefined_filtered4.txt
 
-## In some of these scripts, software name "DAGchainer" is used as anchor to locate the summary information line. If you are using other softwares, you can either modify the script to use the software name you are using, or just use "DAGchainer" as the software name in your synteny files.
+## In some of these scripts, software name "DAGchainer" is used as anchor to locate the summary information line. If you are using other softwares, you can either modify the scripts to use the software name you are using, or just use "DAGchainer" as the software name in your synteny files. The steps using "DAGchainer" in them are step 2, 6 and 7.
+
+## For this stage, you can run all the steps together in this pipeline automaticly by putting the command lines into a bash script following the step order described here.
 
 ## Now, all synteny files are combined together into syntenic-block markers.
 
